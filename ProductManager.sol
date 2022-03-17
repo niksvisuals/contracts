@@ -4,6 +4,15 @@ pragma experimental ABIEncoderV2;
 
 import "./ManufacturerManager.sol";
 
+interface IManufacturerManager{
+    function checkAuthorship(uint96 EPC)  
+    external
+    view
+    returns(bool);
+
+    function isValidManufacturer() external returns (bool);
+}
+
 contract ProductManager{
     enum ProductStatus {Shipped, Owned, Disposed}
     
@@ -15,6 +24,8 @@ contract ProductManager{
         uint8 nTransferred;
         bool isUsed;
     }
+
+    
     uint private constant MAXTRANSFER = 5;
     mapping (uint96 => ProductInfo) products;
 
@@ -23,12 +34,13 @@ contract ProductManager{
         require(!products[EPC].isUsed, "EPC is alredy present");
         _;
     }
-    modifier onlyManufacturer(){
-    require(!new MaufacturerManager().isValidManufacturer(), "Not a manufacturer");
+    modifier onlyManufacturer(address mmAddr){
+        bool isManufac = IManufacturerManager(mmAddr).isValidManufacturer();
+        require(isManufac, "Not a manufacturer");
     _;
     }
     modifier onlyExist(uint96 EPC){
-    require(products[EPC].isUsed, "Product EPC does not exist");
+        require(products[EPC].isUsed, "Product EPC does not exist");
     _;
     }
     modifier onlyOwner(uint96 EPC){
@@ -44,13 +56,14 @@ contract ProductManager{
     _;
     }
 
-    function enrollProduct( uint96 EPC) 
+    function enrollProduct(address mmAddr, uint96 EPC) 
     public 
     onlyNotExist(EPC) 
-    onlyManufacturer() {
-        MaufacturerManager mm = new MaufacturerManager();
+    onlyManufacturer(mmAddr)
+    {
+        MaufacturerManager mm = MaufacturerManager(mmAddr);
         // if (mm.checkAuthorship(EPC)) {
-            require(!mm.checkAuthorship(EPC), "Invalid check authorship");
+            require(mm.checkAuthorship(EPC), "Invalid check authorship");
             products[EPC].owner = tx.origin;
             products[EPC].status = ProductStatus.Owned;
             products[EPC].creationTime = block.timestamp;
@@ -65,7 +78,7 @@ contract ProductManager{
     onlyOwner(EPC) 
     onlyStatusIs(EPC, ProductStatus.Owned) 
     {
-        require(recipient == products[EPC].owner);
+        // require(recipient == products[EPC].owner);
         products[EPC].status =ProductStatus.Shipped;
         products[EPC].recipient = recipient;
     }

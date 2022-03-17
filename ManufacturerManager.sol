@@ -33,13 +33,14 @@ contract MaufacturerManager{
         manufacturers[m].isManufacturer = true;
         companyPrefixToAddress[companyPrefix] = m;
     }
-    
+    bool public isManufacturer;
     modifier onlyAdmin(){
-        require(msg.sender==admin,"Unauthorised Access");_;
+        require(msg.sender==admin,"Not Admin");_;
     }
 
-    function isValidManufacturer() external view returns (bool){
-        return manufacturers[tx.origin].isManufacturer;
+    function isValidManufacturer() external returns (bool){
+        return (manufacturers[tx.origin].isManufacturer==true);
+        
     }
 
     function checkAuthorship(uint96 EPC)  
@@ -47,10 +48,11 @@ contract MaufacturerManager{
     view
     returns(bool){
         //epc sent by the function, used to extract company prefix
+        // console.log(msg.sender);
         uint40 companyPrefix = uint40(EPC);
 
         //comany prefix of sender, retreived from blockchain
-        uint40 companyEpc = manufacturers[msg.sender].companyPrefix;
+        uint40 companyEpc = manufacturers[tx.origin].companyPrefix;
         
         if(companyPrefix == companyEpc){
             return true;
