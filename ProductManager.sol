@@ -13,9 +13,20 @@ interface IManufacturerManager{
     function isValidManufacturer() external returns (bool);
 }
 
+
+
 contract ProductManager{
     enum ProductStatus {Shipped, Owned, Disposed}
     
+    struct customerInfo{
+        string name;
+        string phone;
+        uint96[] productsOwned;
+        bool isCustomer;
+
+    }
+    mapping (address=> customerInfo) CustomerOwnedItems;
+
     struct ProductInfo {
         address owner;
         address recipient;
@@ -56,6 +67,26 @@ contract ProductManager{
     _;
     }
 
+    // add customer
+    function createCustomer(string memory _name, string memory _phone) public payable returns (bool) {
+        if (CustomerOwnedItems[msg.sender].isCustomer) {
+            return false;
+        }
+        customerInfo memory newCustomer;
+        newCustomer.name = _name;
+        newCustomer.phone = _phone;
+        newCustomer.isCustomer = true;
+       
+        CustomerOwnedItems[msg.sender] = newCustomer;
+        return true;
+    }
+
+    function getCustomerDetails(address _addr) public view returns(customerInfo memory){
+        if(CustomerOwnedItems[_addr].isCustomer){
+            return (CustomerOwnedItems[_addr]);
+        }
+    }
+
     function enrollProduct(address mmAddr, uint96 EPC) 
     public 
     onlyNotExist(EPC) 
@@ -69,6 +100,7 @@ contract ProductManager{
             products[EPC].creationTime = block.timestamp;
             products[EPC].nTransferred = 0;
             products[EPC].isUsed = true;
+            
         // }
     }
     
@@ -91,9 +123,12 @@ contract ProductManager{
         products[EPC].owner = msg.sender;
         products[EPC].status = ProductStatus.Owned;
         products[EPC].nTransferred = products[EPC].nTransferred + 1;
-        if (products[EPC].nTransferred <= MAXTRANSFER) {
+        CustomerOwnedItems[msg.sender].productsOwned.push(EPC);
+        // CustomerOwnedItems[msg.sender].productsOwned.push(products[EPC]);
+        // return true;
+        // if (products[EPC].nTransferred <= MAXTRANSFER) {
             // msg.sender.send(transferReward);
-        }
+        // }
     }
 
     function getCurrentOwner(uint96 EPC) 
