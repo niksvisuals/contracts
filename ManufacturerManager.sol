@@ -2,70 +2,67 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 // SPDX-License-Identifier: MIT
 
-
 struct ManufacturerInfo {
-uint40 companyPrefix;
-bytes32 companyName;
-uint expireTime;
-bool isManufacturer;
+    uint40 companyPrefix;
+    bytes32 companyName;
+    uint256 expireTime;
+    bool isManufacturer;
 }
 
-contract MaufacturerManager{
-
+contract MaufacturerManager {
     address private admin;
-    
-    constructor(){
+
+    constructor() {
         admin = msg.sender;
     }
 
-    mapping (address => ManufacturerInfo) manufacturers;
-    mapping (uint40 => address) companyPrefixToAddress;
+    mapping(address => ManufacturerInfo) manufacturers;
+    mapping(uint40 => address) companyPrefixToAddress;
 
     function enrollManufacturer(
-    address m,                  //manufacturer Address
-    uint40 companyPrefix, 
-    bytes32 companyName,        //0x60298f78cc0b47170ba79c10aa3851d7648bd96f2f8e46a19dbc777c36fb0c00 - keccak256(solidity)
-    uint validDurationInYear) 
-    public onlyAdmin {
-        manufacturers[m].companyPrefix =companyPrefix;
-        manufacturers[m].companyName =companyName;
-        manufacturers[m].expireTime = block.timestamp +validDurationInYear;
+        address m, //manufacturer Address
+        uint40 companyPrefix,
+        bytes32 companyName, //0x60298f78cc0b47170ba79c10aa3851d7648bd96f2f8e46a19dbc777c36fb0c00 - keccak256(solidity)
+        uint256 validDurationInYear
+    ) public onlyAdmin {
+        manufacturers[m].companyPrefix = companyPrefix;
+        manufacturers[m].companyName = companyName;
+        manufacturers[m].expireTime = block.timestamp + validDurationInYear;
         manufacturers[m].isManufacturer = true;
         companyPrefixToAddress[companyPrefix] = m;
     }
+
     bool public isManufacturer;
-    modifier onlyAdmin(){
-        require(msg.sender==admin,"Not Admin");_;
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Not Admin");
+        _;
     }
 
-    function isValidManufacturer() external returns (bool){
-        return (manufacturers[tx.origin].isManufacturer==true);
-        
+    function isValidManufacturer() external view returns (bool) {
+        return (manufacturers[tx.origin].isManufacturer == true);
     }
 
-    function checkAuthorship(uint96 EPC)  
-    public
-    view
-    returns(bool){
+    function checkAuthorship(uint96 EPC) public view returns (bool) {
         //epc sent by the function, used to extract company prefix
         // console.log(msg.sender);
         uint40 companyPrefix = uint40(EPC);
 
         //comany prefix of sender, retreived from blockchain
         uint40 companyEpc = manufacturers[tx.origin].companyPrefix;
-        
-        if(companyPrefix == companyEpc){
+
+        if (companyPrefix == companyEpc) {
             return true;
-        }else{
-            return false;}
+        } else {
+            return false;
+        }
     }
 
     function getManufacturerAddress(uint96 EPC)
-    external 
-    view 
-    returns (address) {
+        external
+        view
+        returns (address)
+    {
         uint40 cp = uint40(EPC);
         return companyPrefixToAddress[cp];
     }
-
 }
