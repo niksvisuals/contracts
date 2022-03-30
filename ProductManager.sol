@@ -6,30 +6,30 @@ pragma solidity ^0.8.0;
 // import "./ManufacturerManager.sol";
 
 interface IManufacturerManager {
-    function checkAuthorship(uint96 EPC) external view returns (bool);
+    function checkAuthorship(uint16 _companyPrefix) external view returns (bool);
 
     function isValidManufacturer() external returns (bool);
 }
 
 contract ProductManager {
-    address private mmAddr;
+    address private mmAddr; //manufacturer manager contract address
 
     constructor(address _mmAddr) {
         mmAddr = _mmAddr;
     }
 
-    event Transfer(address indexed from, address indexed to, uint96 EPC);
+    event Transfer(address indexed from, address indexed to, uint32 indexed EPC);
 
     enum ProductStatus {
-        Shipped,
         Owned,
+        Shipped,
         Disposed
     }
 
     struct customerInfo {
         string name;
         string phone;
-        uint96[] productsOwned;
+        uint32[] productsOwned;
         bool isCustomer;
     }
     mapping(address => customerInfo) CustomerOwnedItems;
@@ -40,35 +40,35 @@ contract ProductManager {
         ProductStatus status;
         uint256 creationTime;
         uint8 nTransferred;
-        bool isUsed;
+        bool isEpcUsed;
     }
 
-    uint256 private constant MAXTRANSFER = 5;
-    mapping(uint96 => ProductInfo) products;
+    // uint256 private constant MAXTRANSFER = 5;
+    mapping(uint32 => ProductInfo) products;
 
-    modifier onlyNotExist(uint96 EPC) {
+    modifier onlyNotExist(uint32 EPC) {
         //allow only non existing epc to be registered
-        require(!products[EPC].isUsed, "EPC is alredy present");
+        require(!products[EPC].isEpcUsed, "EPC is alredy present");
         _;
     }
     modifier onlyManufacturer() {
-        bool isManufac = IManufacturerManager(mmAddr).isValidManufacturer();
-        require(isManufac, "Not a manufacturer");
+        bool isManufacturer = IManufacturerManager(mmAddr).isValidManufacturer();
+        require(isManufacturer, "Not a manufacturer");
         _;
     }
-    modifier onlyExist(uint96 EPC) {
-        require(products[EPC].isUsed, "Product EPC does not exist");
+    modifier onlyExist(uint32 EPC) {
+        require(products[EPC].isEpcUsed, "Product EPC does not exist");
         _;
     }
-    modifier onlyOwner(uint96 EPC) {
+    modifier onlyOwner(uint32 EPC) {
         require(products[EPC].owner == msg.sender, "Not the original owner");
         _;
     }
-    modifier onlyStatusIs(uint96 EPC, ProductStatus _status) {
+    modifier onlyStatusIs(uint32 EPC, ProductStatus _status) {
         require(products[EPC].status == _status, "Status mismatch");
         _;
     }
-    modifier onlyRecipient(uint96 EPC) {
+    modifier onlyRecipient(uint32 EPC) {
         require(
             products[EPC].recipient == msg.sender,
             "Not authorised receiver"
@@ -79,7 +79,6 @@ contract ProductManager {
     // add customer
     function createCustomer(string memory _name, string memory _phone)
         public
-        payable
         returns (bool)
     {
         if (CustomerOwnedItems[msg.sender].isCustomer) {
@@ -106,25 +105,25 @@ contract ProductManager {
         }
     }
 
-    function enrollProduct(uint96 EPC)
+    function enrollProduct(uint32 EPC, uint16 _cp)
         public
         onlyNotExist(EPC)
         onlyManufacturer
     {
         IManufacturerManager mm = IManufacturerManager(mmAddr);
-        // MaufacturerManager mm = MaufacturerManager(mmAddr);
+        // ManufacturerManager mm = ManufacturerManager(mmAddr);
         // if (mm.checkAuthorship(EPC)) {
-        require(mm.checkAuthorship(EPC), "Invalid check authorship");
+        require(mm.checkAuthorship(_cp), "Company Prefix not owned by you.");
         products[EPC].owner = tx.origin;
         products[EPC].status = ProductStatus.Owned;
         products[EPC].creationTime = block.timestamp;
         products[EPC].nTransferred = 0;
-        products[EPC].isUsed = true;
+        products[EPC].isEpcUsed = true;
         emit Transfer(address(0), msg.sender, EPC);
         // }
     }
 
-    function shipProduct(address recipient, uint96 EPC)
+    function shipProduct(address recipient, uint32 EPC)
         public
         onlyExist(EPC)
         onlyOwner(EPC)
@@ -135,7 +134,7 @@ contract ProductManager {
         products[EPC].recipient = recipient;
     }
 
-    function receiveProduct(uint96 EPC)
+    function receiveProduct(uint32 EPC)
         public
         onlyExist(EPC)
         onlyRecipient(EPC)
@@ -153,7 +152,7 @@ contract ProductManager {
         // }
     }
 
-    function getCurrentOwner(uint96 EPC)
+    function getCurrentOwner(uint32 EPC)
         public
         view
         onlyExist(EPC)
@@ -162,7 +161,7 @@ contract ProductManager {
         return products[EPC].owner;
     }
 
-    function getRecipient(uint96 EPC)
+    function getRecipient(uint32 EPC)
         public
         view
         onlyExist(EPC)
@@ -172,7 +171,7 @@ contract ProductManager {
         return products[EPC].recipient;
     }
 
-    function getProductStatus(uint96 EPC)
+    function getProductStatus(uint32 EPC)
         public
         view
         onlyExist(EPC)
