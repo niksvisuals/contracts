@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 //https://github.com/ethers-io/ethers.js/issues/368
 // pragma experimental ABIEncoderV2;
 // SPDX-License-Identifier: MIT
-
 // import "./ManufacturerManager.sol";
 
 interface IManufacturerManager {
@@ -68,6 +67,7 @@ contract ProductManager {
         require(products[EPC].status == _status, "Status mismatch");
         _;
     }
+
     modifier onlyRecipient(uint32 EPC) {
         require(
             products[EPC].recipient == msg.sender,
@@ -133,6 +133,7 @@ contract ProductManager {
         products[EPC].status = ProductStatus.Shipped;
         products[EPC].recipient = recipient;
     }
+    
 
     function receiveProduct(uint32 EPC)
         public
