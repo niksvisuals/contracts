@@ -41,6 +41,14 @@ contract ManufacturerManager {
         // require(manufacturers[tx.origin].expireTime >= block.timestamp);
         return manufacturers[tx.origin].isManufacturer;
     }
+    function getManufacturerDetails(address _addr) external view returns (ManufacturerInfo memory) {
+        // require(manufacturers[tx.origin].expireTime >= block.timestamp);
+        if (manufacturers[_addr].isManufacturer) {
+            return (manufacturers[_addr]);
+        } else {
+            return (manufacturers[address(0x0)]);
+        }
+    }
 
     function checkAuthorship(uint16 _cp) public view returns (bool) {
         //epc sent by the function, used to extract company prefix
